@@ -62,7 +62,7 @@ function createApp({ config = loadConfig(), sessionStore } = {}) {
         cookie: {
             maxAge: SESSION_MAX_AGE,
             httpOnly: true,
-            sameSite: "lax",
+            sameSite: config.production ? "none" : "lax",
             secure: config.production
         }
     };
