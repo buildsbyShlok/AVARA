@@ -1,0 +1,16 @@
+{
+  "name": "avara",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AVARA cinematic travel platform",
+  "engines": { "node": ">=22.12.0" },
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "start": "npm --prefix backend start",
+    "test": "npm --prefix backend test",
+    "check": "node frontend/scripts/check-project.cjs"
+  }
+}

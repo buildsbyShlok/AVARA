@@ -1,0 +1,41 @@
+# Dependencies and generated build/cache files
+node_modules/
+dist/
+dist-ssr/
+.vite/
+coverage/
+
+# Secrets and environment overrides (templates may be committed)
+.env
+.env.*
+!.env.example
+*.local
+
+# User content lives on a persistent volume, never in source control
+backend/uploads/
+
+# Logs and editor/OS state
+logs/
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# Private database and deployment backups
+deployment-backup/
+**/deployment-backup/
+
+# Database dumps
+*.bson
+*.bson.gz
+*.metadata.json
+
+# Local database files
+*.wt
+WiredTiger*
