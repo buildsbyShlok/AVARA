@@ -16,6 +16,7 @@ const errorHandler = require("./middleware/errorHandler");
 const { loadConfig } = require("./config");
 const ExpressError = require("./utils/ExpressError");
 const { createMongoSessionStore, SESSION_MAX_AGE } = require("./sessionStore");
+const { logStartupFailure } = require("./utils/startupDiagnostics");
 
 function createApp({ config = loadConfig(), sessionStore } = {}) {
     if (config.production && (!sessionStore || sessionStore instanceof session.MemoryStore)) {
@@ -112,21 +113,38 @@ function createApp({ config = loadConfig(), sessionStore } = {}) {
 }
 
 async function startServer(options = {}) {
-    const config = options.config || loadConfig();
+    let config;
+    let stage = "configuration";
     let server;
     try {
+        console.log("AVARA startup [configuration]: validating");
+        config = options.config || loadConfig();
         if (config.production && options.sessionStore instanceof session.MemoryStore) {
             throw new Error("Production requires a persistent session store.");
         }
+        stage = "mongodb";
+        console.log("AVARA startup [mongodb]: connecting");
         await mongoose.connect(config.mongoUrl, { serverSelectionTimeoutMS: 10000 });
+        console.log("AVARA startup [mongodb]: connected");
+        stage = "session-store";
+        console.log("AVARA startup [session-store]: initializing persistent store");
         const sessionStore = options.sessionStore || await createMongoSessionStore(mongoose.connection);
+        console.log("AVARA startup [session-store]: ready");
+        stage = "application";
         const app = createApp({ ...options, config, sessionStore });
+        stage = "http";
+        console.log("AVARA startup [http]: starting listener");
         server = await new Promise((resolve, reject) => {
             const listener = app.listen(config.port, () => resolve(listener));
             listener.once("error", reject);
         });
     } catch (error) {
-        await mongoose.disconnect();
+        logStartupFailure(stage, error, config);
+        try {
+            await mongoose.disconnect();
+        } catch (cleanupError) {
+            logStartupFailure("mongodb-cleanup", cleanupError, config);
+        }
         throw error;
     }
     console.log(`AVARA API listening on port ${config.port}`);
@@ -145,10 +163,8 @@ async function startServer(options = {}) {
 }
 
 if (require.main === module) {
-    startServer().catch(async () => {
-        // Connection errors may contain credentials; keep startup logs generic.
-        console.error("AVARA startup failed. Check environment, session store, database connectivity and port availability. See README.");
-        await mongoose.disconnect();
+    startServer().catch(() => {
+        // startServer has already logged sanitized diagnostics and attempted cleanup.
         process.exitCode = 1;
     });
 }
